@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel de Insucesso</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* Paleta Kuehne+Nagel (aproximada): ajuste aqui se tiver os HEX oficiais */
+:root{
+  --kn-navy:#031E50;
+  --kn-blue:#0A3C8C;
+  --kn-sky:#00A0DF;
+  --kn-light:#E8F1FA;
+  --kn-grey:#5B6B82;
+  --kn-line:#D5DEEA;
+  --white:#fff;
+  --danger:#C62828;
+  --ok:#1B7F4B;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Segoe UI,Roboto,Arial,sans-serif;background:var(--kn-light);color:var(--kn-navy);font-size:14px}
+header.top{background:var(--kn-navy);color:#fff;padding:12px 24px;display:flex;align-items:center;gap:16px;border-bottom:4px solid var(--kn-sky)}
+.logo{font-weight:800;font-size:20px;letter-spacing:.5px}
+.logo span{color:var(--kn-sky)}
+header .sub{opacity:.8;font-size:12px}
+header .sp{flex:1}
+header .who{font-size:13px;text-align:right}
+button,.btn{font:inherit;cursor:pointer;border:0;border-radius:6px;padding:9px 16px;background:var(--kn-blue);color:#fff;font-weight:600}
+button:hover{background:var(--kn-navy)}
+button.sec{background:#fff;color:var(--kn-navy);border:1px solid var(--kn-line)}
+button.sec:hover{background:var(--kn-light)}
+button.sky{background:var(--kn-sky)}
+button.sky:hover{background:#0087bd}
+button.danger{background:var(--danger)}
+button.sm{padding:4px 9px;font-size:12px}
+nav.tabs{display:flex;gap:4px;padding:12px 24px 0;background:var(--kn-light)}
+nav.tabs button{background:transparent;color:var(--kn-grey);border-radius:6px 6px 0 0;border-bottom:3px solid transparent}
+nav.tabs button.on{background:#fff;color:var(--kn-navy);border-bottom-color:var(--kn-sky)}
+main{padding:0 24px 40px}
+.card{background:#fff;border-radius:0 8px 8px 8px;padding:20px;box-shadow:0 1px 3px rgba(3,30,80,.12);margin-bottom:16px}
+h2{margin:0 0 14px;font-size:17px;color:var(--kn-navy)}
+h3{margin:18px 0 8px;font-size:14px;color:var(--kn-blue)}
+label{display:block;font-size:12px;font-weight:600;color:var(--kn-grey);margin-bottom:4px}
+input,select,textarea{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--kn-line);border-radius:6px;background:#fff;color:var(--kn-navy)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--kn-sky);border-color:var(--kn-sky)}
+input[readonly]{background:var(--kn-light)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{background:var(--kn-navy);color:#fff;text-align:left;padding:8px;position:sticky;top:0;white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--kn-line)}
+tr:nth-child(even) td{background:#F5F9FD}
+.scroll{max-height:460px;overflow:auto;border:1px solid var(--kn-line);border-radius:6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--kn-light);border-left:4px solid var(--kn-sky);border-radius:6px;padding:10px 12px}
+.kpi b{display:block;font-size:22px}
+.kpi small{color:var(--kn-grey)}
+.bar{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12px}
+.bar .n{width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .b{height:12px;background:var(--kn-sky);border-radius:3px}
+.msg{padding:9px 12px;border-radius:6px;margin-top:10px;font-size:13px}
+.msg.err{background:#FDECEA;color:var(--danger)}
+.msg.ok{background:#E6F4EC;color:var(--ok)}
+.msg.warn{background:#FFF6DD;color:#8A5A00}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--kn-light);border:1px solid var(--kn-line);border-radius:14px;padding:3px 6px 3px 10px;font-size:12px;font-variant-numeric:tabular-nums}
+.chip.dup{background:#FFF6DD;border-color:#E8C77A;color:#8A5A00}
+.chip button{padding:0 6px;background:transparent;color:inherit;font-size:14px;line-height:18px;border-radius:50%}
+.chip button:hover{background:var(--kn-line);color:var(--kn-navy)}
+.hide{display:none!important}
+#login{max-width:380px;margin:8vh auto;background:#fff;border-radius:10px;padding:28px;box-shadow:0 4px 18px rgba(3,30,80,.2);border-top:5px solid var(--kn-sky)}
+#login .logo{color:var(--kn-navy);font-size:24px;margin-bottom:2px}
+#login .field{margin-bottom:14px}
+.pill{display:inline-block;background:var(--kn-light);color:var(--kn-blue);border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<section id="login" class="hide">
+  <div class="logo">PAINEL DE <span>INSUCESSO</span></div>
+  <div class="sub" style="color:var(--kn-grey);margin-bottom:18px;font-size:12px">SRJ15 · Registro de pacotes com insucesso</div>
+  <div id="firstMsg" class="msg warn hide">Primeiro acesso: o usuário criado agora será o <b>administrador</b>.</div>
+  <div class="field" id="fNome" style="margin-top:12px"><label>Nome completo (aparece nos registros)</label><input id="lNome" autocomplete="name"></div>
+  <div class="field"><label>Usuário (login)</label><input id="lUser" autocomplete="username"></div>
+  <div class="field"><label>Senha</label><input id="lPass" type="password" autocomplete="current-password"></div>
+  <button id="btnLogin" style="width:100%">Entrar</button>
+  <div id="loginMsg"></div>
+</section>
+
+<!-- APP -->
+<div id="app" class="hide">
+<header class="top">
+  <div><div class="logo">PAINEL DE <span>INSUCESSO</span></div><div class="sub">SRJ15</div></div>
+  <div class="sp"></div>
+  <div class="who"><div id="whoName"></div><div id="whoRole" class="sub"></div></div>
+  <button class="sec sm" id="btnPass">Alterar senha</button>
+  <button class="sky sm" id="btnLogout">Sair</button>
+</header>
+<nav class="tabs">
+  <button data-tab="reg" class="on">Registrar</button>
+  <button data-tab="lista">Registros e relatórios</button>
+  <button data-tab="admin" id="tabAdmin" class="hide">Administração</button>
+</nav>
+<main>
+
+<!-- REGISTRAR -->
+<section id="tab-reg" class="card">
+  <h2 id="formTitle">Novo registro</h2>
+  <div class="grid">
+    <div><label>Data</label><input type="date" id="fData"></div>
+    <div><label>Responsável (login logado)</label><input id="fResp" readonly></div>
+    <div><label>SVC</label><input id="fSvc"></div>
+    <div><label>MLP (Transportadora)</label><select id="fMlp"></select></div>
+    <div><label>Nome do driver</label><input id="fDriver" placeholder="Nome do motorista"></div>
+    <div><label>Motivo</label><select id="fMotivo"></select></div>
+    <div><label>Situação final</label><select id="fStatus"></select></div>
+    </div>
+  <div style="margin-top:16px">
+    <label for="fPacote">ID do pacote (bipe e tecle Enter para adicionar à lista)</label>
+    <input id="fPacote" inputmode="numeric" placeholder="Bipe ou digite o ID" autocomplete="off">
+  </div>
+  <div id="batchBox" style="margin-top:12px">
+    <div class="row"><b id="batchCount">0 IDs na lista</b><div style="flex:1"></div><button class="sec sm" id="btnClearBatch">Limpar lista</button></div>
+    <div class="chips" id="batchList"></div>
+  </div>
+  <div class="row" style="margin-top:16px">
+    <button id="btnSave">Finalizar lote</button>
+    <button class="sec" id="btnCancel">Limpar tudo</button>
+    <label style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="fKeep" style="width:auto" checked> Manter MLP, driver, motivo e situação após finalizar</label>
+  </div>
+  <div id="regMsg"></div>
+</section>
+
+<!-- LISTA -->
+<section id="tab-lista" class="card hide">
+  <h2>Registros e relatórios</h2>
+  <div class="grid" style="margin-bottom:12px">
+    <div><label>Data inicial</label><input type="date" id="qDe"></div>
+    <div><label>Data final</label><input type="date" id="qAte"></div>
+    <div><label>MLP</label><select id="qMlp"></select></div>
+    <div><label>Situação final</label><select id="qStatus"></select></div>
+    <div><label>Motivo</label><select id="qMotivo"></select></div>
+    <div id="qUserBox" class="hide"><label>Responsável</label><select id="qUser"></select></div>
+    <div><label>Buscar (ID, driver)</label><input id="qTxt"></div>
+  </div>
+  <div class="row" style="margin-bottom:14px">
+    <button class="sec" id="btnClear">Limpar filtros</button>
+    <div style="flex:1"></div>
+    <button class="sky" id="btnPdf">Gerar PDF</button>
+    <button class="sky" id="btnXls">Gerar Excel</button>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="scroll"><table><thead><tr>
+    <th>Data</th><th>Responsável</th><th>SVC</th><th>ID Pacote</th><th>MLP</th><th>Driver</th><th>Motivo</th><th>Situação final</th><th></th>
+  </tr></thead><tbody id="tbody"></tbody></table></div>
+  <h3>Resumo</h3>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+    <div><b>Por motivo</b><div id="chMotivo"></div></div>
+    <div><b>Por MLP</b><div id="chMlp"></div></div>
+    <div><b>Por situação final</b><div id="chStatus"></div></div>
+  </div>
+</section>
+
+<!-- ADMIN -->
+<section id="tab-admin" class="card hide">
+  <h2>Usuários</h2>
+  <div class="grid">
+    <div><label>Nome completo</label><input id="uNome"></div>
+    <div><label>Login</label><input id="uLogin"></div>
+    <div><label>Senha inicial</label><input id="uPass" type="text"></div>
+    <div><label>Perfil</label><select id="uRole"><option value="user">Usuário</option><option value="admin">Administrador</option></select></div>
+  </div>
+  <div class="row" style="margin-top:12px"><button id="btnAddUser">Criar usuário</button></div>
+  <div id="userMsg"></div>
+  <div class="scroll" style="margin-top:12px;max-height:240px"><table><thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Registros</th><th></th></tr></thead><tbody id="uBody"></tbody></table></div>
+
+  <h2 style="margin-top:26px">Listas (um item por linha)</h2>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+    <div><label>MLP / Transportadoras</label><textarea id="lsMlp" rows="10"></textarea></div>
+    <div><label>Motivos</label><textarea id="lsMotivo" rows="10"></textarea></div>
+    <div><label>Situação final</label><textarea id="lsStatus" rows="10"></textarea></div>
+  </div>
+  <div class="row" style="margin-top:12px"><button id="btnSaveLists">Salvar listas</button></div>
+  <div id="listMsg"></div>
+
+  <h2 style="margin-top:26px">Backup</h2>
+  <div class="msg warn">Os dados ficam salvos neste navegador/computador. Faça backup com frequência.</div>
+  <div class="row" style="margin-top:10px">
+    <button class="sec" id="btnBackup">Baixar backup (JSON)</button>
+    <label class="btn sec" style="margin:0">Restaurar backup<input type="file" id="fRestore" accept=".json" class="hide"></label>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const K = {users:'pi_users', recs:'pi_records', sess:'pi_session', lists:'pi_lists'};
+const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } };
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+const DEFAULT_LISTS = {
+  mlp: ['PARCEIRO SPOT SOLUCOES','Hawk Transportes','DELUNA','M. J. TRANSPORTES','DECARGO','A L C TRANSPORTES','ECO EXPRESS','ON TIME SERVIÇOS','COOPMETRO'],
+  motivo: ['Comprador Ausente','Não visitado','Comércio fechado','Recusado comprador','Palavra chave incorreta','Endereço errado','Inacessível','Fraude','Pacote de outra região','Sinistrado','Entregue','Pacote Perdido','Solução de Problema','Duplicado','Depois do horário','Coleta Bulky','Envio Cancelado','Faltante','Avariado','Voando','3 Tentativas de Entrega','Pacote enviado'],
+  status: ['DESPACHAR','AVARIA','AVARIA DRIVER/EM ROTA','AVARIA LM','DEVOLUÇÃO','DEVOLVIDO','N/A - RETIRADO DA ROTA','PENDENTE COM TRANSPORTADORA','ROUBADO','DUPLICADO','SOLUÇÃO DE PROBLEMAS','Classificação FOS']
+};
+let lists = Object.assign({}, DEFAULT_LISTS, load(K.lists, {}));
+let users = load(K.users, []);
+let recs = load(K.recs, []);
+let me = null;
+let editingId = null;
+
+async function hash(login, pass){
+  const data = new TextEncoder().encode('pi|' + login.toLowerCase() + '|' + pass);
+  if (window.crypto && crypto.subtle) {
+    const b = await crypto.subtle.digest('SHA-256', data);
+    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join('');
+  }
+  let h = 5381; for (const x of data) h = ((h << 5) + h + x) >>> 0; return 'f' + h;
+}
+const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const brDate = iso => iso ? iso.split('-').reverse().join('/') : '';
+const msg = (id, text, type='ok') => { $(id).innerHTML = text ? `<div class="msg ${type}">${esc(text)}</div>` : ''; };
+
+/* ---------- LOGIN ---------- */
+function showLogin(){
+  $('app').classList.add('hide'); $('login').classList.remove('hide');
+  const first = users.length === 0;
+  $('firstMsg').classList.toggle('hide', !first);
+  $('fNome').classList.toggle('hide', !first);
+  $('btnLogin').textContent = first ? 'Criar administrador e entrar' : 'Entrar';
+  msg('loginMsg','');
+}
+$('btnLogin').onclick = async () => {
+  const login = $('lUser').value.trim().toLowerCase(), pass = $('lPass').value;
+  if (!login || !pass) return msg('loginMsg','Informe usuário e senha.','err');
+  if (users.length === 0) {
+    const nome = $('lNome').value.trim();
+    if (!nome) return msg('loginMsg','Informe seu nome completo.','err');
+    if (pass.length < 4) return msg('loginMsg','Use uma senha de pelo menos 4 caracteres.','err');
+    users.push({login, nome, hash: await hash(login, pass), admin: true});
+    save(K.users, users);
+    return startSession(login);
+  }
+  const u = users.find(x => x.login === login);
+  if (!u || u.hash !== await hash(login, pass)) return msg('loginMsg','Usuário ou senha incorretos.','err');
+  startSession(login);
+};
+['lUser','lPass','lNome'].forEach(i => $(i).addEventListener('keydown', e => { if (e.key === 'Enter') $('btnLogin').click(); }));
+function startSession(login){
+  sessionStorage.setItem(K.sess, login);
+  me = users.find(u => u.login === login);
+  $('lPass').value = '';
+  initApp();
+}
+$('btnLogout').onclick = () => { sessionStorage.removeItem(K.sess); me = null; showLogin(); };
+$('btnPass').onclick = async () => {
+  const np = prompt('Nova senha (mínimo 4 caracteres):');
+  if (!np) return;
+  if (np.length < 4) return alert('Senha muito curta.');
+  me.hash = await hash(me.login, np); save(K.users, users); alert('Senha alterada.');
+};
+
+/* ---------- APP ---------- */
+function fillSelect(sel, items, withAll){
+  const cur = sel.value;
+  sel.innerHTML = (withAll ? '<option value="">(todos)</option>' : '<option value="">Selecione…</option>') + items.map(i => `<option>${esc(i)}</option>`).join('');
+  if (items.includes(cur)) sel.value = cur;
+}
+function initApp(){
+  $('login').classList.add('hide'); $('app').classList.remove('hide');
+  $('whoName').textContent = me.nome; $('whoRole').textContent = (me.admin ? 'Administrador' : 'Usuário') + ' · ' + me.login;
+  $('tabAdmin').classList.toggle('hide', !me.admin);
+  $('qUserBox').classList.toggle('hide', !me.admin);
+  refreshLists(); resetForm(); switchTab('reg');
+}
+function refreshLists(){
+  fillSelect($('fMlp'), lists.mlp); fillSelect($('fMotivo'), lists.motivo); fillSelect($('fStatus'), lists.status);
+  fillSelect($('qMlp'), lists.mlp, true); fillSelect($('qMotivo'), lists.motivo, true); fillSelect($('qStatus'), lists.status, true);
+  $('lsMlp').value = lists.mlp.join('\n'); $('lsMotivo').value = lists.motivo.join('\n'); $('lsStatus').value = lists.status.join('\n');
+}
+function switchTab(t){
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  ['reg','lista','admin'].forEach(x => $('tab-'+x).classList.toggle('hide', x !== t));
+  if (t === 'lista') renderList();
+  if (t === 'admin') renderUsers();
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+
+/* ---------- REGISTRO ---------- */
+function resetForm(keep){
+  editingId = null; $('formTitle').textContent = 'Novo lote de registros';
+  $('fData').value = $('fData').value || today();
+  $('fResp').value = me.nome; if (!$('fSvc').value) $('fSvc').value = 'SRJ15';
+  if (!keep) { $('fMlp').value = ''; $('fDriver').value = ''; $('fMotivo').value = ''; $('fStatus').value = ''; }
+  $('fPacote').value = ''; batch = []; renderBatch(); $('btnSave').textContent = 'Finalizar lote'; msg('regMsg','');
+  $('fPacote').focus();
+}
+let batch = [];
+function renderBatch(){
+  $('batchCount').textContent = batch.length + (batch.length === 1 ? ' ID na lista' : ' IDs na lista');
+  $('batchList').innerHTML = batch.map((b,i) => `<span class="chip${b.dup ? ' dup' : ''}" title="${b.dup ? esc('Já lançado em ' + brDate(b.dup.data) + ' por ' + b.dup.respNome) : ''}">${esc(b.id)}<button data-rm="${i}" aria-label="Remover ${esc(b.id)}">×</button></span>`).join('');
+  $('btnClearBatch').classList.toggle('hide', !batch.length);
+}
+function addId(){
+  const v = $('fPacote').value.trim();
+  if (!v) return;
+  if (!/^\d+$/.test(v)) { msg('regMsg','O ID do pacote deve conter apenas números.','err'); $('fPacote').select(); return; }
+  if (batch.some(b => b.id === v)) { msg('regMsg','O ID ' + v + ' já está na lista.','warn'); $('fPacote').value = ''; $('fPacote').focus(); return; }
+  const dup = recs.find(x => x.pacote === v) || null;
+  batch.push({id: v, dup});
+  $('fPacote').value = ''; renderBatch();
+  msg('regMsg', dup ? 'ID ' + v + ' adicionado, mas já foi lançado em ' + brDate(dup.data) + ' por ' + dup.respNome + '.' : '', 'warn');
+  $('fPacote').focus();
+}
+$('batchList').onclick = e => { const i = e.target.dataset.rm; if (i != null) { batch.splice(+i, 1); renderBatch(); $('fPacote').focus(); } };
+$('btnClearBatch').onclick = () => { batch = []; renderBatch(); msg('regMsg',''); $('fPacote').focus(); };
+$('btnCancel').onclick = () => { $('fMlp').value=''; $('fDriver').value=''; $('fMotivo').value=''; $('fStatus').value=''; resetForm(false); };
+$('fPacote').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (editingId) $('btnSave').click(); else addId(); } });
+$('btnSave').onclick = () => {
+  if (!editingId && $('fPacote').value.trim()) { addId(); if ($('fPacote').value.trim()) return; }
+  const c = { data: $('fData').value, svc: $('fSvc').value.trim(), mlp: $('fMlp').value, driver: $('fDriver').value.trim(), motivo: $('fMotivo').value, status: $('fStatus').value };
+  if (!c.data || !c.mlp || !c.motivo || !c.status || !c.driver)
+    return msg('regMsg','Preencha data, MLP, driver, motivo e situação final.','err');
+  if (editingId) {
+    const pacote = $('fPacote').value.trim();
+    if (!/^\d+$/.test(pacote)) return msg('regMsg','O ID do pacote deve conter apenas números.','err');
+    const x = recs.find(i => i.id === editingId);
+    Object.assign(x, c, {pacote, editadoEm: new Date().toISOString()});
+    save(K.recs, recs); resetForm($('fKeep').checked); msg('regMsg','Registro atualizado.');
+    return;
+  }
+  if (!batch.length) return msg('regMsg','Bipe ao menos um ID do pacote antes de finalizar.','err');
+  const now = new Date().toISOString(), n = batch.length, nd = batch.filter(b => b.dup).length;
+  batch.forEach((b,i) => recs.push(Object.assign({id: Date.now().toString(36) + i + Math.random().toString(36).slice(2,6), user: me.login, respNome: me.nome, criadoEm: now, pacote: b.id}, c)));
+  save(K.recs, recs);
+  resetForm($('fKeep').checked);
+  msg('regMsg', n + (n === 1 ? ' registro salvo' : ' registros salvos') + '.' + (nd ? ' ' + nd + (nd === 1 ? ' ID já existia' : ' IDs já existiam') + ' em lançamentos anteriores.' : ''), nd ? 'warn' : 'ok');
+};
+
+/* ---------- LISTA ---------- */
+const visible = () => me.admin ? recs : recs.filter(r => r.user === me.login);
+function filtered(){
+  const de = $('qDe').value, ate = $('qAte').value, mlp = $('qMlp').value, st = $('qStatus').value, mo = $('qMotivo').value, us = $('qUser').value, tx = $('qTxt').value.trim().toLowerCase();
+  return visible().filter(r =>
+    (!de || r.data >= de) && (!ate || r.data <= ate) && (!mlp || r.mlp === mlp) && (!st || r.status === st) && (!mo || r.motivo === mo) &&
+    (!us || r.user === us) && (!tx || r.pacote.includes(tx) || r.driver.toLowerCase().includes(tx))
+  ).sort((a,b) => (b.data + b.criadoEm).localeCompare(a.data + a.criadoEm));
+}
+function count(arr, key){ const m = {}; arr.forEach(r => m[r[key]] = (m[r[key]]||0)+1); return Object.entries(m).sort((a,b) => b[1]-a[1]); }
+function bars(id, entries){
+  const max = entries.length ? entries[0][1] : 1;
+  $(id).innerHTML = entries.map(([n,v]) => `<div class="bar"><div class="n" title="${esc(n)}">${esc(n)}</div><div class="b" style="width:${Math.max(4, v/max*120)}px"></div><b>${v}</b></div>`).join('') || '<small>Sem dados</small>';
+}
+function renderList(){
+  if (me.admin) { const cur = $('qUser').value; $('qUser').innerHTML = '<option value="">(todos)</option>' + users.map(u => `<option value="${esc(u.login)}">${esc(u.nome)}</option>`).join(''); $('qUser').value = cur; }
+  const rows = filtered();
+  $('tbody').innerHTML = rows.map(r => `<tr>
+    <td>${brDate(r.data)}</td><td>${esc(r.respNome)}</td><td>${esc(r.svc)}</td><td>${esc(r.pacote)}</td><td>${esc(r.mlp)}</td><td>${esc(r.driver)}</td><td>${esc(r.motivo)}</td><td>${esc(r.status)}</td>
+    <td style="white-space:nowrap">${(me.admin || r.user === me.login) ? `<button class="sec sm" data-edit="${r.id}">Editar</button> <button class="danger sm" data-del="${r.id}">Excluir</button>` : ''}</td></tr>`).join('')
+    || '<tr><td colspan="9" style="text-align:center;color:var(--kn-grey);padding:20px">Nenhum registro encontrado.</td></tr>';
+  const por = count(rows, 'status');
+  $('kpis').innerHTML = `<div class="kpi"><small>Total de registros</small><b>${rows.length}</b></div>` +
+    por.slice(0,3).map(([n,v]) => `<div class="kpi"><small>${esc(n)}</small><b>${v}</b></div>`).join('');
+  bars('chMotivo', count(rows,'motivo')); bars('chMlp', count(rows,'mlp')); bars('chStatus', por);
+}
+['qDe','qAte','qMlp','qStatus','qMotivo','qUser'].forEach(i => $(i).onchange = renderList);
+$('qTxt').oninput = renderList;
+$('btnClear').onclick = () => { ['qDe','qAte','qMlp','qStatus','qMotivo','qUser','qTxt'].forEach(i => $(i).value = ''); renderList(); };
+$('tbody').onclick = e => {
+  const ed = e.target.dataset.edit, dl = e.target.dataset.del;
+  if (ed) {
+    const r = recs.find(x => x.id === ed); editingId = ed;
+    $('fData').value = r.data; $('fSvc').value = r.svc; $('fPacote').value = r.pacote; $('fMlp').value = r.mlp; $('fDriver').value = r.driver; $('fMotivo').value = r.motivo; $('fStatus').value = r.status;
+    $('fResp').value = r.respNome; $('formTitle').textContent = 'Editando registro ' + r.pacote; batch = []; renderBatch(); $('btnSave').textContent = 'Salvar alteração';
+    switchTab('reg');
+  }
+  if (dl && confirm('Excluir este registro?')) { recs = recs.filter(x => x.id !== dl); save(K.recs, recs); renderList(); }
+};
+
+/* ---------- RELATÓRIOS ---------- */
+function filterText(){
+  const p = [];
+  if ($('qDe').value) p.push('De ' + brDate($('qDe').value)); if ($('qAte').value) p.push('Até ' + brDate($('qAte').value));
+  if ($('qMlp').value) p.push('MLP: ' + $('qMlp').value); if ($('qStatus').value) p.push('Situação: ' + $('qStatus').value);
+  if ($('qMotivo').value) p.push('Motivo: ' + $('qMotivo').value);
+  if ($('qUser').value) p.push('Responsável: ' + (users.find(u => u.login === $('qUser').value)||{}).nome);
+  return p.join(' | ') || 'Sem filtros';
+}
+const stamp = () => { const d = new Date(); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR'); };
+const fileStamp = () => today().replace(/-/g,'');
+$('btnXls').onclick = () => {
+  const rows = filtered(); if (!rows.length) return alert('Nenhum registro para exportar.');
+  const wb = XLSX.utils.book_new();
+  const head = ['Data','Responsável','Login','SVC','ID Pacote','MLP (Transportadora)','Driver','Motivo','Situação final'];
+  const data = rows.map(r => [brDate(r.data), r.respNome, r.user, r.svc, r.pacote, r.mlp, r.driver, r.motivo, r.status]);
+  const ws = XLSX.utils.aoa_to_sheet([head, ...data]);
+  ws['!cols'] = [{wch:11},{wch:22},{wch:14},{wch:8},{wch:16},{wch:26},{wch:22},{wch:26},{wch:28}];
+  ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:data.length, c:head.length-1}})};
+  XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+  const sum = [['PAINEL DE INSUCESSO - Resumo'], ['Gerado em', stamp()], ['Gerado por', me.nome], ['Filtros', filterText()], ['Total', rows.length], []];
+  [['Por motivo','motivo'],['Por MLP (Transportadora)','mlp'],['Por situação final','status'],['Por driver','driver'],['Por responsável','respNome']].forEach(([t,k]) => {
+    sum.push([t, 'Qtd']); count(rows,k).forEach(e => sum.push(e)); sum.push([]);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(sum); ws2['!cols'] = [{wch:34},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumo');
+  XLSX.writeFile(wb, `painel-insucesso_${fileStamp()}.xlsx`);
+};
+$('btnPdf').onclick = () => {
+  const rows = filtered(); if (!rows.length) return alert('Nenhum registro para exportar.');
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
+  const W = doc.internal.pageSize.getWidth();
+  doc.setFillColor(3,30,80); doc.rect(0,0,W,58,'F'); doc.setFillColor(0,160,223); doc.rect(0,58,W,4,'F');
+  doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text('PAINEL DE INSUCESSO', 30, 30);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.text('SRJ15 · Relatório de pacotes com insucesso', 30, 46);
+  doc.text('Gerado em ' + stamp() + ' por ' + me.nome, W-30, 30, {align:'right'});
+  doc.setTextColor(3,30,80); doc.setFontSize(9); doc.text('Filtros: ' + filterText() + '   |   Total: ' + rows.length + ' registros', 30, 80);
+  let y = 94;
+  const mk = (title, key) => {
+    doc.autoTable({startY: y, head:[[title, 'Qtd']], body: count(rows,key), margin:{left:30, right: W/2+10}, theme:'grid',
+      headStyles:{fillColor:[3,30,80]}, styles:{fontSize:8, cellPadding:3}, alternateRowStyles:{fillColor:[232,241,250]}});
+    y = doc.lastAutoTable.finalY + 12;
+  };
+  mk('Resumo por motivo', 'motivo'); mk('Resumo por MLP (Transportadora)', 'mlp'); mk('Resumo por situação final', 'status');
+  doc.addPage();
+  doc.autoTable({
+    startY: 40,
+    head:[['Data','Responsável','SVC','ID Pacote','MLP','Driver','Motivo','Situação final']],
+    body: rows.map(r => [brDate(r.data), r.respNome, r.svc, r.pacote, r.mlp, r.driver, r.motivo, r.status]),
+    theme:'grid', headStyles:{fillColor:[3,30,80], textColor:255}, styles:{fontSize:8, cellPadding:3},
+    alternateRowStyles:{fillColor:[232,241,250]}, margin:{left:30,right:30,top:40},
+    didDrawPage: () => { doc.setFontSize(8); doc.setTextColor(91,107,130); doc.text('Painel de Insucesso · SRJ15 · pág. ' + doc.internal.getNumberOfPages(), W/2, doc.internal.pageSize.getHeight()-14, {align:'center'}); }
+  });
+  doc.save(`painel-insucesso_${fileStamp()}.pdf`);
+};
+
+/* ---------- ADMIN ---------- */
+function renderUsers(){
+  $('uBody').innerHTML = users.map(u => `<tr><td>${esc(u.nome)}</td><td>${esc(u.login)}</td><td>${u.admin ? '<span class="pill">Admin</span>' : 'Usuário'}</td><td>${recs.filter(r => r.user === u.login).length}</td>
+  <td style="white-space:nowrap"><button class="sec sm" data-reset="${esc(u.login)}">Redefinir senha</button> ${u.login !== me.login ? `<button class="danger sm" data-rm="${esc(u.login)}">Remover</button>` : ''}</td></tr>`).join('');
+}
+$('btnAddUser').onclick = async () => {
+  const nome = $('uNome').value.trim(), login = $('uLogin').value.trim().toLowerCase(), pass = $('uPass').value;
+  if (!nome || !login || pass.length < 4) return msg('userMsg','Informe nome, login e senha (mínimo 4 caracteres).','err');
+  if (users.some(u => u.login === login)) return msg('userMsg','Esse login já existe.','err');
+  users.push({login, nome, hash: await hash(login, pass), admin: $('uRole').value === 'admin'});
+  save(K.users, users); ['uNome','uLogin','uPass'].forEach(i => $(i).value = ''); msg('userMsg','Usuário criado.'); renderUsers();
+};
+$('uBody').onclick = async e => {
+  const rs = e.target.dataset.reset, rm = e.target.dataset.rm;
+  if (rs) { const np = prompt('Nova senha para ' + rs + ':'); if (np && np.length >= 4) { users.find(u => u.login === rs).hash = await hash(rs, np); save(K.users, users); alert('Senha redefinida.'); } }
+  if (rm && confirm('Remover o usuário ' + rm + '? Os registros dele serão mantidos.')) { users = users.filter(u => u.login !== rm); save(K.users, users); renderUsers(); }
+};
+$('btnSaveLists').onclick = () => {
+  const p = id => [...new Set($(id).value.split('\n').map(s => s.trim()).filter(Boolean))];
+  lists = {mlp: p('lsMlp'), motivo: p('lsMotivo'), status: p('lsStatus')};
+  save(K.lists, lists); refreshLists(); msg('listMsg','Listas salvas.');
+};
+$('btnBackup').onclick = () => {
+  const blob = new Blob([JSON.stringify({users, recs, lists}, null, 1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-painel-insucesso_${fileStamp()}.json`; a.click();
+};
+$('fRestore').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const d = JSON.parse(rd.result);
+      if (!Array.isArray(d.users) || !Array.isArray(d.recs)) throw 0;
+      if (!confirm('Isso substitui TODOS os dados atuais. Continuar?')) return;
+      users = d.users; recs = d.recs; lists = Object.assign({}, DEFAULT_LISTS, d.lists || {});
+      save(K.users, users); save(K.recs, recs); save(K.lists, lists);
+      me = users.find(u => u.login === me.login) || users[0]; initApp(); alert('Backup restaurado.');
+    } catch { alert('Arquivo de backup inválido.'); }
+  };
+  rd.readAsText(f);
+};
+
+/* ---------- START ---------- */
+const s = sessionStorage.getItem(K.sess);
+if (s && users.find(u => u.login === s)) { me = users.find(u => u.login === s); initApp(); } else showLogin();
+</script>
+</body>
+</html>

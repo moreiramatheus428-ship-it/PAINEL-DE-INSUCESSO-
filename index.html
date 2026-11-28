@@ -70,10 +70,15 @@ tr:nth-child(even) td{background:#F5F9FD}
 .chip.dup{background:#FFF6DD;border-color:#E8C77A;color:#8A5A00}
 .chip button{padding:0 6px;background:transparent;color:inherit;font-size:14px;line-height:18px;border-radius:50%}
 .chip button:hover{background:var(--kn-line);color:var(--kn-navy)}
+.pwm{position:fixed;inset:0;background:rgba(3,30,80,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:70}
+.pwbox{background:#fff;border-radius:10px;padding:20px;width:100%;max-width:380px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.pwbox .field{margin-bottom:12px}
+.lnk{background:transparent;color:var(--kn-grey);padding:6px 0;font-weight:400;font-size:12px;text-decoration:underline;width:100%;margin-top:6px}
+.lnk:hover{background:transparent;color:var(--kn-navy)}
 .hide{display:none!important}
-#login{max-width:380px;margin:8vh auto;background:#fff;border-radius:10px;padding:28px;box-shadow:0 4px 18px rgba(3,30,80,.2);border-top:5px solid var(--kn-sky)}
-#login .logo{color:var(--kn-navy);font-size:24px;margin-bottom:2px}
-#login .field{margin-bottom:14px}
+#login,#adminLogin{max-width:380px;margin:8vh auto;background:#fff;border-radius:10px;padding:28px;box-shadow:0 4px 18px rgba(3,30,80,.2);border-top:5px solid var(--kn-sky)}
+#login .logo,#adminLogin .logo{color:var(--kn-navy);font-size:24px;margin-bottom:2px}
+#login .field,#adminLogin .field{margin-bottom:14px}
 .pill{display:inline-block;background:var(--kn-light);color:var(--kn-blue);border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700}
 </style>
 </head>
@@ -82,14 +87,34 @@ tr:nth-child(even) td{background:#F5F9FD}
 <!-- LOGIN -->
 <section id="login" class="hide">
   <div class="logo">PAINEL DE <span>INSUCESSO</span></div>
-  <div class="sub" style="color:var(--kn-grey);margin-bottom:18px;font-size:12px">SRJ15 · Registro de pacotes com insucesso</div>
-  <div id="firstMsg" class="msg warn hide">Primeiro acesso: o usuário criado agora será o <b>administrador</b>.</div>
-  <div class="field" id="fNome" style="margin-top:12px"><label>Nome completo (aparece nos registros)</label><input id="lNome" autocomplete="name"></div>
-  <div class="field"><label>Usuário (login)</label><input id="lUser" autocomplete="username"></div>
-  <div class="field"><label>Senha</label><input id="lPass" type="password" autocomplete="current-password"></div>
+  <div style="color:var(--kn-grey);margin-bottom:18px;font-size:12px">SRJ15 · Registro de pacotes com insucesso</div>
+  <div id="noUsers" class="msg warn hide">Nenhum usuário cadastrado ainda. Peça ao administrador para criar o seu acesso.</div>
+  <div id="demoHint" class="msg ok hide">Dados de exemplo ativos. Entre com <b>silvestre</b>, <b>joao</b> ou <b>maria</b>, senha <b>1234</b>.</div>
+  <div class="field" style="margin-top:12px"><label for="lUser">Usuário (login)</label><input id="lUser" autocomplete="username"></div>
+  <div class="field"><label for="lPass">Senha</label><input id="lPass" type="password" autocomplete="current-password"></div>
   <button id="btnLogin" style="width:100%">Entrar</button>
   <div id="loginMsg"></div>
 </section>
+
+<!-- LOGIN DO ADMINISTRADOR (abrir o arquivo com #admin no final do endereço) -->
+<section id="adminLogin" class="hide">
+  <div class="logo">PAINEL DE <span>INSUCESSO</span></div>
+  <div style="color:var(--kn-grey);margin-bottom:18px;font-size:12px">Acesso do administrador</div>
+  <div class="field"><label for="aUser">Usuário do administrador</label><input id="aUser" autocomplete="username"></div>
+  <div class="field"><label for="aPass">Senha</label><input id="aPass" type="password" autocomplete="current-password"></div>
+  <button id="btnAdmLogin" style="width:100%">Entrar como administrador</button>
+  <button class="lnk" id="backUser">Voltar ao login de usuário</button>
+  <div id="admMsg"></div>
+</section>
+
+<div id="pwModal" class="pwm hide"><div class="pwbox">
+  <h2>Alterar senha</h2>
+  <div class="field"><label for="pwOld">Senha atual</label><input id="pwOld" type="password" autocomplete="current-password"></div>
+  <div class="field"><label for="pwNew">Nova senha</label><input id="pwNew" type="password" autocomplete="new-password"></div>
+  <div class="field"><label for="pwNew2">Repita a nova senha</label><input id="pwNew2" type="password" autocomplete="new-password"></div>
+  <div id="pwMsg"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="sec" id="pwCancel">Cancelar</button><button id="pwSave">Salvar senha</button></div>
+</div></div>
 
 <!-- APP -->
 <div id="app" class="hide">
@@ -172,8 +197,7 @@ tr:nth-child(even) td{background:#F5F9FD}
     <div><label>Nome completo</label><input id="uNome"></div>
     <div><label>Login</label><input id="uLogin"></div>
     <div><label>Senha inicial</label><input id="uPass" type="text"></div>
-    <div><label>Perfil</label><select id="uRole"><option value="user">Usuário</option><option value="admin">Administrador</option></select></div>
-  </div>
+    </div>
   <div class="row" style="margin-top:12px"><button id="btnAddUser">Criar usuário</button></div>
   <div id="userMsg"></div>
   <div class="scroll" style="margin-top:12px;max-height:240px"><table><thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Registros</th><th></th></tr></thead><tbody id="uBody"></tbody></table></div>
@@ -201,7 +225,7 @@ tr:nth-child(even) td{background:#F5F9FD}
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const K = {users:'pi_users', recs:'pi_records', sess:'pi_session', lists:'pi_lists'};
+const K = {users:'pi_users', recs:'pi_records', sess:'pi_session', lists:'pi_lists', adm:'pi_admin'};
 const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } };
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
@@ -229,42 +253,61 @@ const brDate = iso => iso ? iso.split('-').reverse().join('/') : '';
 const msg = (id, text, type='ok') => { $(id).innerHTML = text ? `<div class="msg ${type}">${esc(text)}</div>` : ''; };
 
 /* ---------- LOGIN ---------- */
-function showLogin(){
-  $('app').classList.add('hide'); $('login').classList.remove('hide');
-  const first = users.length === 0;
-  $('firstMsg').classList.toggle('hide', !first);
-  $('fNome').classList.toggle('hide', !first);
-  $('btnLogin').textContent = first ? 'Criar administrador e entrar' : 'Entrar';
-  msg('loginMsg','');
+const ADM = {login:'ext_jemmathe', nome:'Administrador'};
+const ADM_DEFAULT = {sha:'981a9b5b3ab68ac39f95b9e1e7417b95401009d5dbf1c7d9b9722966124beda2', djb:'f132771356'};
+const ssGet = k => { try { return sessionStorage.getItem(k); } catch { return null; } };
+const ssSet = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch {} };
+const admHash = () => load(K.adm, null) || ((window.crypto && crypto.subtle) ? ADM_DEFAULT.sha : ADM_DEFAULT.djb);
+const wantsAdmin = () => location.hash === '#admin';
+let admFails = 0, admLock = 0;
+function showLogin(admin){
+  $('app').classList.add('hide');
+  $('login').classList.toggle('hide', !!admin);
+  $('adminLogin').classList.toggle('hide', !admin);
+  $('demoHint').classList.toggle('hide', !users.some(u => u.demo));
+  $('noUsers').classList.toggle('hide', users.length > 0);
+  msg('loginMsg',''); msg('admMsg','');
 }
 $('btnLogin').onclick = async () => {
   const login = $('lUser').value.trim().toLowerCase(), pass = $('lPass').value;
   if (!login || !pass) return msg('loginMsg','Informe usuário e senha.','err');
-  if (users.length === 0) {
-    const nome = $('lNome').value.trim();
-    if (!nome) return msg('loginMsg','Informe seu nome completo.','err');
-    if (pass.length < 4) return msg('loginMsg','Use uma senha de pelo menos 4 caracteres.','err');
-    users.push({login, nome, hash: await hash(login, pass), admin: true});
-    save(K.users, users);
-    return startSession(login);
-  }
   const u = users.find(x => x.login === login);
   if (!u || u.hash !== await hash(login, pass)) return msg('loginMsg','Usuário ou senha incorretos.','err');
   startSession(login);
 };
-['lUser','lPass','lNome'].forEach(i => $(i).addEventListener('keydown', e => { if (e.key === 'Enter') $('btnLogin').click(); }));
-function startSession(login){
-  sessionStorage.setItem(K.sess, login);
-  me = users.find(u => u.login === login);
-  $('lPass').value = '';
-  initApp();
+$('btnAdmLogin').onclick = async () => {
+  const login = $('aUser').value.trim().toLowerCase(), pass = $('aPass').value;
+  if (Date.now() < admLock) return msg('admMsg','Muitas tentativas. Aguarde 30 segundos.','err');
+  if (!login || !pass) return msg('admMsg','Informe usuário e senha.','err');
+  if (login !== ADM.login || await hash(ADM.login, pass) !== admHash()) {
+    admFails++; if (admFails >= 5) { admFails = 0; admLock = Date.now() + 30000; }
+    return msg('admMsg','Usuário ou senha incorretos.','err');
+  }
+  admFails = 0; startSession(ADM.login);
+};
+$('backUser').onclick = () => { try { history.replaceState(null, '', location.pathname + location.search); } catch {} showLogin(false); };
+['lUser','lPass'].forEach(i => $(i).addEventListener('keydown', e => { if (e.key === 'Enter') $('btnLogin').click(); }));
+['aUser','aPass'].forEach(i => $(i).addEventListener('keydown', e => { if (e.key === 'Enter') $('btnAdmLogin').click(); }));
+function startSession(login, tab){
+  ssSet(K.sess, login);
+  me = login === ADM.login ? {login: ADM.login, nome: ADM.nome, admin: true} : users.find(u => u.login === login);
+  ['lUser','lPass','aUser','aPass'].forEach(i => $(i).value = '');
+  initApp(tab || 'reg');
 }
-$('btnLogout').onclick = () => { sessionStorage.removeItem(K.sess); me = null; showLogin(); };
-$('btnPass').onclick = async () => {
-  const np = prompt('Nova senha (mínimo 4 caracteres):');
-  if (!np) return;
-  if (np.length < 4) return alert('Senha muito curta.');
-  me.hash = await hash(me.login, np); save(K.users, users); alert('Senha alterada.');
+$('btnLogout').onclick = () => { ssSet(K.sess, null); me = null; showLogin(wantsAdmin()); };
+$('btnPass').onclick = () => { ['pwOld','pwNew','pwNew2'].forEach(i => $(i).value = ''); msg('pwMsg',''); $('pwModal').classList.remove('hide'); $('pwOld').focus(); };
+$('pwCancel').onclick = () => $('pwModal').classList.add('hide');
+$('pwSave').onclick = async () => {
+  const min = me.admin ? 6 : 4, o = $('pwOld').value, n = $('pwNew').value, n2 = $('pwNew2').value;
+  const cur = me.admin ? admHash() : me.hash;
+  if (await hash(me.login, o) !== cur) return msg('pwMsg','A senha atual está incorreta.','err');
+  if (n.length < min) return msg('pwMsg','A nova senha precisa ter pelo menos ' + min + ' caracteres.','err');
+  if (n !== n2) return msg('pwMsg','A confirmação não confere com a nova senha.','err');
+  const nh = await hash(me.login, n);
+  if (me.admin) save(K.adm, nh); else { me.hash = nh; save(K.users, users); }
+  ['pwOld','pwNew','pwNew2'].forEach(i => $(i).value = '');
+  msg('pwMsg','Senha alterada.');
+  setTimeout(() => $('pwModal').classList.add('hide'), 1400);
 };
 
 /* ---------- APP ---------- */
@@ -273,12 +316,12 @@ function fillSelect(sel, items, withAll){
   sel.innerHTML = (withAll ? '<option value="">(todos)</option>' : '<option value="">Selecione…</option>') + items.map(i => `<option>${esc(i)}</option>`).join('');
   if (items.includes(cur)) sel.value = cur;
 }
-function initApp(){
-  $('login').classList.add('hide'); $('app').classList.remove('hide');
+function initApp(tab){
+  $('login').classList.add('hide'); $('adminLogin').classList.add('hide'); $('app').classList.remove('hide');
   $('whoName').textContent = me.nome; $('whoRole').textContent = (me.admin ? 'Administrador' : 'Usuário') + ' · ' + me.login;
   $('tabAdmin').classList.toggle('hide', !me.admin);
   $('qUserBox').classList.toggle('hide', !me.admin);
-  refreshLists(); resetForm(); switchTab('reg');
+  refreshLists(); resetForm(); switchTab(tab || 'reg');
 }
 function refreshLists(){
   fillSelect($('fMlp'), lists.mlp); fillSelect($('fMotivo'), lists.motivo); fillSelect($('fStatus'), lists.status);
@@ -359,7 +402,7 @@ function bars(id, entries){
   $(id).innerHTML = entries.map(([n,v]) => `<div class="bar"><div class="n" title="${esc(n)}">${esc(n)}</div><div class="b" style="width:${Math.max(4, v/max*120)}px"></div><b>${v}</b></div>`).join('') || '<small>Sem dados</small>';
 }
 function renderList(){
-  if (me.admin) { const cur = $('qUser').value; $('qUser').innerHTML = '<option value="">(todos)</option>' + users.map(u => `<option value="${esc(u.login)}">${esc(u.nome)}</option>`).join(''); $('qUser').value = cur; }
+  if (me.admin) { const cur = $('qUser').value; $('qUser').innerHTML = '<option value="">(todos)</option>' + [ADM, ...users].map(u => `<option value="${esc(u.login)}">${esc(u.nome)}</option>`).join(''); $('qUser').value = cur; }
   const rows = filtered();
   $('tbody').innerHTML = rows.map(r => `<tr>
     <td>${brDate(r.data)}</td><td>${esc(r.respNome)}</td><td>${esc(r.svc)}</td><td>${esc(r.pacote)}</td><td>${esc(r.mlp)}</td><td>${esc(r.driver)}</td><td>${esc(r.motivo)}</td><td>${esc(r.status)}</td>
@@ -390,7 +433,7 @@ function filterText(){
   if ($('qDe').value) p.push('De ' + brDate($('qDe').value)); if ($('qAte').value) p.push('Até ' + brDate($('qAte').value));
   if ($('qMlp').value) p.push('MLP: ' + $('qMlp').value); if ($('qStatus').value) p.push('Situação: ' + $('qStatus').value);
   if ($('qMotivo').value) p.push('Motivo: ' + $('qMotivo').value);
-  if ($('qUser').value) p.push('Responsável: ' + (users.find(u => u.login === $('qUser').value)||{}).nome);
+  if ($('qUser').value) p.push('Responsável: ' + ([ADM, ...users].find(u => u.login === $('qUser').value)||{}).nome);
   return p.join(' | ') || 'Sem filtros';
 }
 const stamp = () => { const d = new Date(); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR'); };
@@ -448,8 +491,8 @@ function renderUsers(){
 $('btnAddUser').onclick = async () => {
   const nome = $('uNome').value.trim(), login = $('uLogin').value.trim().toLowerCase(), pass = $('uPass').value;
   if (!nome || !login || pass.length < 4) return msg('userMsg','Informe nome, login e senha (mínimo 4 caracteres).','err');
-  if (users.some(u => u.login === login)) return msg('userMsg','Esse login já existe.','err');
-  users.push({login, nome, hash: await hash(login, pass), admin: $('uRole').value === 'admin'});
+  if (login === ADM.login || users.some(u => u.login === login)) return msg('userMsg','Esse login já existe.','err');
+  users.push({login, nome, hash: await hash(login, pass), admin: false});
   save(K.users, users); ['uNome','uLogin','uPass'].forEach(i => $(i).value = ''); msg('userMsg','Usuário criado.'); renderUsers();
 };
 $('uBody').onclick = async e => {
@@ -476,15 +519,22 @@ $('fRestore').onchange = e => {
       if (!confirm('Isso substitui TODOS os dados atuais. Continuar?')) return;
       users = d.users; recs = d.recs; lists = Object.assign({}, DEFAULT_LISTS, d.lists || {});
       save(K.users, users); save(K.recs, recs); save(K.lists, lists);
-      me = users.find(u => u.login === me.login) || users[0]; initApp(); alert('Backup restaurado.');
+      users.forEach(u => { u.admin = false; }); initApp('admin'); alert('Backup restaurado.');
     } catch { alert('Arquivo de backup inválido.'); }
   };
   rd.readAsText(f);
 };
 
 /* ---------- START ---------- */
-const s = sessionStorage.getItem(K.sess);
-if (s && users.find(u => u.login === s)) { me = users.find(u => u.login === s); initApp(); } else showLogin();
+window.addEventListener('hashchange', () => { if (!me) showLogin(wantsAdmin()); });
+(async () => {
+  users.forEach(u => { u.admin = false; });
+  
+  const s = ssGet(K.sess);
+  if (s === ADM.login) { me = {login: ADM.login, nome: ADM.nome, admin: true}; initApp('reg'); }
+  else if (s && users.find(u => u.login === s)) { me = users.find(u => u.login === s); initApp('reg'); }
+  else showLogin(wantsAdmin());
+})();
 </script>
 </body>
 </html>
